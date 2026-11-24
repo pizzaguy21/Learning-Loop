@@ -1,7 +1,9 @@
 "use client";
 
 import { onSnapshot, type DocumentReference, type Query } from "firebase/firestore";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { User } from "firebase/auth";
+import { lecturerRef } from "./data";
 
 type Live<T> = { data: T; loading: boolean; error: Error | null };
 
@@ -61,4 +63,12 @@ export function useCollection<T>(q: Query | null): Live<T[]> {
     loading: q !== null && !fresh,
     error: fresh ? state.error : null,
   };
+}
+
+/** Whether the signed-in user is on the team's approved-lecturer list. */
+export function useIsApprovedLecturer(user: User | null) {
+  const email = user?.email ?? null;
+  const ref = useMemo(() => (email ? lecturerRef(email) : null), [email]);
+  const { data, loading } = useDoc<{ id: string }>(ref);
+  return { approved: data !== null, loading };
 }

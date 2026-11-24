@@ -37,6 +37,18 @@ async function main() {
     return { id: snap.id, ...snap.data() } as import("../src/lib/data").Question;
   }
 
+  // Approve the lecturer the way the team does in the console (emulator admin access).
+  const dosenEmail = `dosen.${run}@example.com`;
+  const res = await fetch(
+    `http://127.0.0.1:8080/v1/projects/demo-learning-loop/databases/(default)/documents/lecturers/${dosenEmail}`,
+    { method: "PATCH", headers: { Authorization: "Bearer owner" }, body: JSON.stringify({ fields: {} }) },
+  );
+  assert.ok(res.ok, `could not approve lecturer: ${res.status}`);
+
+  const ani0 = await as("Ani");
+  await assert.rejects(data.createCourse(ani0, "Kelas Ilegal", []));
+  console.log("ok  a student cannot create a course");
+
   const dosen = await as("Dosen");
   const cid = await data.createCourse(dosen, "Kelas Uji Asap", ["Rekursi"]);
   const code = (await getDoc(data.courseRef(cid))).data()!.code as string;

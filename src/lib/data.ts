@@ -81,6 +81,8 @@ export const OTHER_TOPIC = "Lainnya";
 // --- references and queries -------------------------------------------------
 
 export const courseRef = (cid: string) => doc(db, "courses", cid);
+/** Exists only for lecturers the team approved (doc id = lower-case email). */
+export const lecturerRef = (email: string) => doc(db, "lecturers", email.toLowerCase());
 export const memberRef = (cid: string, uid: string) => doc(db, "courses", cid, "members", uid);
 export const questionRef = (cid: string, qid: string) =>
   doc(db, "courses", cid, "questions", qid);

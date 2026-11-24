@@ -11,7 +11,8 @@ Smarter Campus and Learning. The user interface is in Indonesian.
 | Feature | Status |
 |---|---|
 | Google Sign-In | Done |
-| Lecturer creates a course and gets a 6-character join code | Done |
+| Approved lecturer creates a course and gets a 6-character join code | Done |
+| Every other account is a student; nobody can choose the lecturer role | Done |
 | Student joins with the code | Done |
 | Anonymous question (asker hidden from classmates, visible to lecturer) | Done |
 | Classmates and peer mentors answer | Done |
@@ -33,6 +34,15 @@ A question document stores no author. The asker is stored separately in
 rules let only the asker and the course lecturer read. Classmates therefore
 cannot find the asker even with browser developer tools. Answers show the
 answerer's name. See `firestore.rules` and `tests/firestore.rules.test.ts`.
+
+## Approving lecturers
+
+Only lecturers the team has approved can create courses. In the Firebase
+console, open Firestore, create (once) a collection named `lecturers`, and add
+one document per lecturer whose **Document ID is their Google email in lower
+case** (fields are optional, e.g. `name`). The security rules check this list;
+users cannot read it or add themselves. Everyone else signs in as a student
+and joins a course with its code.
 
 ## Tech stack
 
@@ -62,14 +72,13 @@ Emulator data is wiped when the emulators stop; run `npm run seed` again.
 ## Tests
 
 ```bash
-npm run test:rules   # 19 security-rule tests (starts its own Firestore emulator)
+npm run test:rules   # 21 security-rule tests (starts its own Firestore emulator)
 npm run smoke        # end-to-end run of src/lib/data.ts; needs `npm run emulators` running
 ```
 
 ## Known limitations
 
-- Anyone signed in can create a course and become its lecturer; lecturers are
-  not verified.
+- Lecturer approval is manual (the team adds emails in the Firebase console).
 - A course name cannot be changed after creation.
 - A member could raise a question's answer counter without posting an answer;
   this affects only the displayed count.

@@ -36,7 +36,9 @@ const CID = "c1";
 const CODE = "ABC234";
 
 function dbFor(p: Person): Firestore {
-  return env.authenticatedContext(p.uid, { name: p.name, email: p.email }).firestore() as unknown as Firestore;
+  return env
+    .authenticatedContext(p.uid, { name: p.name, email: p.email, email_verified: true })
+    .firestore() as unknown as Firestore;
 }
 
 function createCourse(db: Firestore, p: Person, code = CODE) {
@@ -138,12 +140,32 @@ afterAll(() => env.cleanup());
 
 beforeEach(async () => {
   await env.clearFirestore();
+  await env.withSecurityRulesDisabled((ctx) =>
+    setDoc(doc(ctx.firestore() as unknown as Firestore, "lecturers", people.dosen.email), { name: people.dosen.name }),
+  );
   await createCourse(dbFor(people.dosen), people.dosen);
   await join(dbFor(people.ani), people.ani);
   await join(dbFor(people.budi), people.budi);
 });
 
 describe("courses and membership", () => {
+  it("lets only approved lecturers create a course", async () => {
+    await env.clearFirestore();
+    await assertFails(createCourse(dbFor(people.luar), people.luar, "QWE234"));
+    await assertFails(createCourse(dbFor(people.dosen), people.dosen, "QWE234"));
+    await env.withSecurityRulesDisabled((ctx) =>
+      setDoc(doc(ctx.firestore() as unknown as Firestore, "lecturers", people.dosen.email), {}),
+    );
+    await assertSucceeds(createCourse(dbFor(people.dosen), people.dosen, "QWE234"));
+  });
+
+  it("does not let users add themselves to the lecturer list", async () => {
+    await assertFails(setDoc(doc(dbFor(people.luar), "lecturers", people.luar.email), {}));
+    await assertFails(getDocs(collection(dbFor(people.luar), "lecturers")));
+    await assertSucceeds(getDoc(doc(dbFor(people.luar), "lecturers", people.luar.email)));
+    await assertFails(getDoc(doc(dbFor(people.luar), "lecturers", people.dosen.email)));
+  });
+
   it("lets a student join only with the right code", async () => {
     await assertFails(join(dbFor(people.luar), people.luar, "ZZZ999"));
     await assertSucceeds(join(dbFor(people.luar), people.luar));

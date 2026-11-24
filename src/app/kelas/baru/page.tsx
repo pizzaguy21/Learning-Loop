@@ -3,9 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { RequireAuth } from "@/components/require-auth";
-import { Button, Card, ErrorBox, friendlyError, PageTitle } from "@/components/ui";
+import { Button, ButtonLink, Card, ErrorBox, friendlyError, PageTitle, Spinner } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { createCourse, parseTopics } from "@/lib/data";
+import { useIsApprovedLecturer } from "@/lib/hooks";
 
 export default function NewCoursePage() {
   return (
@@ -20,6 +21,7 @@ const inputClass =
 
 function NewCourseForm() {
   const { user } = useAuth();
+  const lecturer = useIsApprovedLecturer(user);
   const router = useRouter();
   const [name, setName] = useState("");
   const [topics, setTopics] = useState("");
@@ -39,6 +41,18 @@ function NewCourseForm() {
       setBusy(false);
     }
   }
+
+  if (lecturer.loading) return <Spinner />;
+  if (!lecturer.approved)
+    return (
+      <div className="space-y-4 py-10 text-center">
+        <p className="text-stone-700">
+          Hanya dosen yang sudah terdaftar yang bisa membuat kelas. Jika kamu dosen, hubungi tim
+          Learning Loop agar email {user?.email} didaftarkan.
+        </p>
+        <ButtonLink href="/gabung">Gabung kelas sebagai mahasiswa</ButtonLink>
+      </div>
+    );
 
   return (
     <div>

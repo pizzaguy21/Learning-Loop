@@ -6,12 +6,12 @@ import { GoogleButton } from "@/components/require-auth";
 import { ButtonLink, Card, ErrorBox, friendlyError, PageTitle, RoleBadge, Spinner } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { myMembershipsQuery, type Member } from "@/lib/data";
-import { useCollection } from "@/lib/hooks";
+import { useCollection, useIsApprovedLecturer } from "@/lib/hooks";
 
 export default function Home() {
   const { user, loading } = useAuth();
   if (loading) return <Spinner />;
-  return user ? <MyCourses uid={user.uid} /> : <Landing />;
+  return user ? <MyCourses /> : <Landing />;
 }
 
 function Landing() {
@@ -45,7 +45,10 @@ function Landing() {
   );
 }
 
-function MyCourses({ uid }: { uid: string }) {
+function MyCourses() {
+  const { user } = useAuth();
+  const uid = user!.uid;
+  const lecturer = useIsApprovedLecturer(user);
   const q = useMemo(() => myMembershipsQuery(uid), [uid]);
   const { data: memberships, loading, error } = useCollection<Member>(q);
   const courses = useMemo(
@@ -58,9 +61,11 @@ function MyCourses({ uid }: { uid: string }) {
       <PageTitle sub="Kelas yang kamu ikuti atau ajar.">Kelas saya</PageTitle>
       <div className="mb-6 flex flex-wrap gap-2">
         <ButtonLink href="/gabung">Gabung kelas</ButtonLink>
-        <ButtonLink href="/kelas/baru" variant="secondary">
-          Buat kelas (dosen)
-        </ButtonLink>
+        {lecturer.approved && (
+          <ButtonLink href="/kelas/baru" variant="secondary">
+            Buat kelas
+          </ButtonLink>
+        )}
       </div>
       {loading ? (
         <Spinner />

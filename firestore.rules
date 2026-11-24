@@ -37,6 +37,15 @@ service cloud.firestore {
       return request.auth.token.get('name', request.auth.token.email);
     }
 
+    // Lecturers are approved by the team: a document whose id is the
+    // lecturer's lower-case Google email in /lecturers. Nobody can pick the
+    // lecturer role themselves; every other account is a student.
+    function isApprovedLecturer() {
+      return signedIn()
+        && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/lecturers/$(request.auth.token.email.lower()));
+    }
+
     function changed() {
       return request.resource.data.diff(resource.data).affectedKeys();
     }
@@ -64,9 +73,15 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Managed in the Firebase console only. A user may check their own entry.
+    match /lecturers/{email} {
+      allow get: if signedIn() && request.auth.token.email.lower() == email;
+      allow list, write: if false;
+    }
+
     match /courses/{cid} {
       allow read: if isMember(cid);
-      allow create: if signedIn()
+      allow create: if isApprovedLecturer()
         && exactKeys(['name', 'code', 'topics', 'lecturerUid', 'lecturerName', 'createdAt'])
         && textOk(request.resource.data.name, 3, 100)
         && request.resource.data.code is string && request.resource.data.code.size() == 6

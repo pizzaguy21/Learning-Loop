@@ -5,6 +5,7 @@
  *
  *   npm run seed                         # demo course with fictional people
  *   npm run seed -- --lecturer you@x.com # also make your emulator account its lecturer
+ *                                        # (and an approved lecturer who can create courses)
  *
  * Sign in once in the app first so the account in --lecturer exists.
  * This script refuses to run against a real Firebase project.
@@ -125,6 +126,7 @@ async function main() {
 
   await db.recursiveDelete(db.doc(`courses/${CID}`));
   const batch = db.batch();
+  batch.set(db.doc(`lecturers/${lecturer.email.toLowerCase()}`), { name: lecturer.name, demo: true });
   batch.set(db.doc(`courses/${CID}`), {
     name: COURSE_NAME,
     code: CODE,
