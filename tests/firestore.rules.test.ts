@@ -7,6 +7,7 @@ import {
 import {
   collection,
   collectionGroup,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -129,10 +130,50 @@ function answer(
   return b.commit();
 }
 
+function verify(db: Firestore, qid: string, aid: string) {
+  const b = writeBatch(db);
+  b.update(doc(db, "courses", CID, "questions", qid, "answers", aid), { verified: true, verifiedAt: serverTimestamp() });
+  b.update(doc(db, "courses", CID, "questions", qid), {
+    status: "verified",
+    verifiedAnswerId: aid,
+    lastActivityAt: serverTimestamp(),
+  });
+  return b.commit();
+}
+
+/** Takes the verification back: the lecturer's undo, or (with a new body) an author's edit. */
+function unverify(db: Firestore, qid: string, aid: string, answerChanges: Record<string, unknown> = {}) {
+  const b = writeBatch(db);
+  b.update(doc(db, "courses", CID, "questions", qid, "answers", aid), {
+    verified: false,
+    verifiedAt: null,
+    ...answerChanges,
+  });
+  b.update(doc(db, "courses", CID, "questions", qid), {
+    status: "answered",
+    verifiedAnswerId: null,
+    lastActivityAt: serverTimestamp(),
+  });
+  return b.commit();
+}
+
+function removeAnswer(db: Firestore, qid: string, aid: string, questionChanges: Record<string, unknown>) {
+  const b = writeBatch(db);
+  b.delete(doc(db, "courses", CID, "questions", qid, "answers", aid));
+  b.update(doc(db, "courses", CID, "questions", qid), {
+    answerCount: increment(-1),
+    lastActivityAt: serverTimestamp(),
+    ...questionChanges,
+  });
+  return b.commit();
+}
+
 beforeAll(async () => {
+  // emulators:exec sets FIRESTORE_EMULATOR_HOST; 8080 is the port in firebase.json.
+  const [host, port] = (process.env.FIRESTORE_EMULATOR_HOST ?? "127.0.0.1:8080").split(":");
   env = await initializeTestEnvironment({
     projectId: "demo-learning-loop",
-    firestore: { rules: readFileSync("firestore.rules", "utf8"), host: "127.0.0.1", port: 8080 },
+    firestore: { rules: readFileSync("firestore.rules", "utf8"), host, port: Number(port) },
   });
 });
 
@@ -343,5 +384,66 @@ describe("answers and verification", () => {
         lastActivityAt: serverTimestamp(),
       }),
     );
+  });
+});
+
+describe("undoing verification, editing and deleting answers", () => {
+  beforeEach(async () => {
+    await ask(dbFor(people.ani), people.ani, "q1");
+    await answer(dbFor(people.budi), people.budi, "student", "q1", "a1");
+  });
+
+  const answerDoc = (p: Person) => doc(dbFor(p), "courses", CID, "questions", "q1", "answers", "a1");
+
+  it("lets the lecturer undo a verification, but not a classmate", async () => {
+    await verify(dbFor(people.dosen), "q1", "a1");
+    await assertFails(unverify(dbFor(people.ani), "q1", "a1"));
+    await assertSucceeds(unverify(dbFor(people.dosen), "q1", "a1"));
+  });
+
+  it("does not let the question drop its verification while the answer stays verified", async () => {
+    await verify(dbFor(people.dosen), "q1", "a1");
+    await assertFails(
+      updateDoc(doc(dbFor(people.dosen), "courses", CID, "questions", "q1"), {
+        status: "answered",
+        verifiedAnswerId: null,
+        lastActivityAt: serverTimestamp(),
+      }),
+    );
+  });
+
+  it("lets only the author edit an answer", async () => {
+    await assertFails(updateDoc(answerDoc(people.ani), { body: "Diubah orang lain." }));
+    await assertFails(updateDoc(answerDoc(people.dosen), { body: "Diubah dosen." }));
+    await assertFails(updateDoc(answerDoc(people.budi), { body: "" }));
+    await assertSucceeds(updateDoc(answerDoc(people.budi), { body: "Diperbaiki." }));
+  });
+
+  it("drops the verification when a student edits a verified answer", async () => {
+    await verify(dbFor(people.dosen), "q1", "a1");
+    await assertFails(updateDoc(answerDoc(people.budi), { body: "Diam-diam diganti." }));
+    await assertSucceeds(unverify(dbFor(people.budi), "q1", "a1", { body: "Diperbaiki." }));
+  });
+
+  it("keeps an official answer verified when the lecturer edits it", async () => {
+    await answer(dbFor(people.dosen), people.dosen, "lecturer", "q1", "a2", { official: true });
+    await assertSucceeds(
+      updateDoc(doc(dbFor(people.dosen), "courses", CID, "questions", "q1", "answers", "a2"), { body: "Koreksi." }),
+    );
+  });
+
+  it("lets the author or the lecturer delete an answer, together with lowering the counter", async () => {
+    await answer(dbFor(people.budi), people.budi, "student", "q1", "a2");
+    await assertFails(removeAnswer(dbFor(people.ani), "q1", "a1", {}));
+    await assertFails(deleteDoc(answerDoc(people.budi)));
+    await assertFails(deleteDoc(answerDoc(people.dosen)));
+    await assertSucceeds(removeAnswer(dbFor(people.budi), "q1", "a2", {}));
+    await assertSucceeds(removeAnswer(dbFor(people.dosen), "q1", "a1", { status: "open" }));
+  });
+
+  it("clears the verification when the verified answer is deleted", async () => {
+    await verify(dbFor(people.dosen), "q1", "a1");
+    await assertFails(removeAnswer(dbFor(people.budi), "q1", "a1", { status: "open" }));
+    await assertSucceeds(removeAnswer(dbFor(people.budi), "q1", "a1", { status: "open", verifiedAnswerId: null }));
   });
 });

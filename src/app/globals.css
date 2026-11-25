@@ -2,6 +2,7 @@
 
 @theme inline {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-jakarta), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
 /* Light theme only for now; dark mode is not designed yet. */
@@ -10,7 +11,16 @@
 }
 
 body {
-  background: #fafaf9;
+  /* Teal-tinted canvas so white cards stand out from the page. */
+  background: #eaf3f1;
   color: #1c1917;
   font-family: var(--font-sans);
+}
+
+@layer base {
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+  }
 }

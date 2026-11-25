@@ -17,6 +17,9 @@ Smarter Campus and Learning. The user interface is in Indonesian.
 | Anonymous question (asker hidden from classmates, visible to lecturer) | Done |
 | Classmates and peer mentors answer | Done |
 | Lecturer verifies a peer answer or posts an official answer | Done |
+| Lecturer undoes a verification | Done |
+| Authors edit and delete their own answers (a student's or mentor's edit removes the verification) | Done |
+| Lecturer deletes any answer in the course | Done |
 | Lecturer promotes students to peer mentor | Done |
 | Filter questions by status and topic; "my questions" | Done |
 | Weekly topic summary for the lecturer | **Not started** (planned 7-16 Dec) |
@@ -72,7 +75,7 @@ Emulator data is wiped when the emulators stop; run `npm run seed` again.
 ## Tests
 
 ```bash
-npm run test:rules   # 21 security-rule tests (starts its own Firestore emulator)
+npm run test:rules   # 28 security-rule tests (starts its own Firestore emulator)
 npm run smoke        # end-to-end run of src/lib/data.ts; needs `npm run emulators` running
 ```
 
@@ -80,8 +83,11 @@ npm run smoke        # end-to-end run of src/lib/data.ts; needs `npm run emulato
 
 - Lecturer approval is manual (the team adds emails in the Firebase console).
 - A course name cannot be changed after creation.
-- A member could raise a question's answer counter without posting an answer;
-  this affects only the displayed count.
+- A member could raise or lower a question's answer counter without posting or
+  deleting an answer. This changes the displayed count and status label (a
+  count of 0 shows the question as unanswered), and while the count is 0 the
+  remaining answers cannot be deleted until someone posts a new one.
+- Lecturers can delete any answer but edit only their own.
 - Not yet tested with real students or lecturers.
 - Light theme only.
 

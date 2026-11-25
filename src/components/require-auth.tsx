@@ -4,12 +4,13 @@ import { useState } from "react";
 import { signInWithGoogle, useAuth } from "@/lib/auth";
 import { Button, ErrorBox, friendlyError, Spinner } from "./ui";
 
-export function GoogleButton() {
+export function GoogleButton({ variant = "primary" }: { variant?: "primary" | "light" }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   return (
     <div className="space-y-3">
       <Button
+        variant={variant}
         disabled={busy}
         onClick={async () => {
           setBusy(true);

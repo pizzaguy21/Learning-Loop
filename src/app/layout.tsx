@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist } from "next/font/google";
+import { Geist, Plus_Jakarta_Sans } from "next/font/google";
 import { Header } from "@/components/header";
 import { AuthProvider } from "@/lib/auth";
 import "./globals.css";
@@ -9,17 +9,24 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
+// Headings (see globals.css).
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: "Learning Loop",
   description:
     "Tanya jawab per mata kuliah: bertanya anonim, dijawab teman dan peer mentor, diverifikasi dosen.",
 };
 
-export const viewport: Viewport = { themeColor: "#0f766e" };
+// teal-800, the header color.
+export const viewport: Viewport = { themeColor: "#005f5a" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="id" className={`${geistSans.variable} h-full antialiased`}>
+    <html lang="id" className={`${geistSans.variable} ${jakarta.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <AuthProvider>
           <Header />

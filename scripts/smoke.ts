@@ -86,6 +86,40 @@ async function main() {
   assert.deepEqual(after.docs.map((d) => [d.data().official, d.data().verified]), [[false, false], [true, true]]);
   console.log("ok  official answer replaced the earlier verification");
 
+  type Answer = import("../src/lib/data").Answer;
+  async function answerById(id: string) {
+    const d = (await getDocs(data.answersQuery(cid, qid))).docs.find((x) => x.id === id)!;
+    return { id: d.id, ...d.data() } as Answer;
+  }
+  const [peerId, officialId] = after.docs.map((d) => d.id);
+  const dosenMember = await memberOf(cid, dosen.uid);
+  await data.editAnswer(cid, await question(cid, qid), await answerById(officialId), dosenMember, "Koreksi resmi, diperjelas.");
+  assert.equal((await question(cid, qid)).verifiedAnswerId, officialId);
+  await data.unverifyAnswer(cid, await question(cid, qid));
+  let q = await question(cid, qid);
+  assert.deepEqual([q.status, q.verifiedAnswerId], ["answered", null]);
+  await data.verifyAnswer(cid, await question(cid, qid), peerId);
+  console.log("ok  lecturer edited the official answer, undid its verification, verified the peer answer");
+
+  await as("Budi");
+  const budiMember = await memberOf(cid, budi.uid);
+  await data.editAnswer(cid, await question(cid, qid), await answerById(peerId), budiMember, "Kondisi berhenti, diperbaiki.");
+  q = await question(cid, qid);
+  assert.deepEqual([q.status, q.verifiedAnswerId], ["answered", null]);
+  assert.equal((await answerById(peerId)).verified, false);
+  await data.deleteAnswer(cid, await question(cid, qid), peerId);
+  assert.equal((await question(cid, qid)).answerCount, 1);
+  await data.postAnswer(cid, await question(cid, qid), budiMember, "Jawaban kedua.");
+  console.log("ok  student's edit dropped the verification; student deleted their answer and answered again");
+
+  await as("Dosen");
+  const secondId = (await getDocs(data.answersQuery(cid, qid))).docs.find((d) => d.data().authorUid === budi.uid)!.id;
+  await data.deleteAnswer(cid, await question(cid, qid), secondId);
+  await data.deleteAnswer(cid, await question(cid, qid), officialId);
+  q = await question(cid, qid);
+  assert.deepEqual([q.status, q.answerCount], ["open", 0]);
+  console.log("ok  lecturer deleted the student's answer and the official answer; question is open again");
+
   await data.setMemberRole(cid, budi.uid, "mentor");
   const members = await getDocs(data.membersQuery(cid));
   assert.equal(members.size, 3);

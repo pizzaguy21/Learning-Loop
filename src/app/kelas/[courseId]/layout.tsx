@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useMemo } from "react";
 import { RequireAuth } from "@/components/require-auth";
-import { ButtonLink, DemoBadge, ErrorBox, friendlyError, RoleBadge, Spinner } from "@/components/ui";
+import { ButtonLink, courseColor, DemoBadge, ErrorBox, friendlyError, RoleBadge, Spinner } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { courseRef, memberRef, type Course, type Member } from "@/lib/data";
 import { useDoc } from "@/lib/hooks";
@@ -54,23 +54,21 @@ function CourseShell({ children }: { children: React.ReactNode }) {
 
   return (
     <CourseContext.Provider value={value}>
-      <div className="mb-5 space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-xl font-semibold text-stone-900 sm:text-2xl">{value.course.name}</h1>
-          <RoleBadge role={value.me.role} />
-          <DemoBadge demo={value.course.demo} />
-        </div>
-        <p className="text-sm text-stone-600">
-          Dosen: {value.course.lecturerName}
+      <div className="mb-5 space-y-4">
+        <div className={`rounded-2xl bg-linear-to-br p-5 text-white shadow-sm sm:p-6 ${courseColor(cid).banner}`}>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{value.course.name}</h1>
+            <RoleBadge role={value.me.role} />
+            <DemoBadge demo={value.course.demo} />
+          </div>
+          <p className="mt-1 text-sm text-white/90">Dosen: {value.course.lecturerName}</p>
           {isLecturer && (
-            <>
-              {" · "}Kode kelas:{" "}
-              <span className="rounded bg-stone-100 px-1.5 py-0.5 font-mono font-semibold tracking-wider text-stone-900">
-                {value.course.code}
-              </span>
-            </>
+            <p className="mt-4 inline-flex items-center gap-3 rounded-xl bg-white/15 px-4 py-2 ring-1 ring-white/25">
+              <span className="text-xs font-medium tracking-wide text-white/90 uppercase">Kode kelas</span>
+              <span className="font-mono text-2xl font-bold tracking-widest">{value.course.code}</span>
+            </p>
           )}
-        </p>
+        </div>
         <nav className="flex gap-1 border-b border-stone-200">
           {tabs.map((t) => {
             const active =

@@ -11,6 +11,7 @@ import {
   friendlyError,
   Spinner,
   StatusBadge,
+  statusStripe,
   timeAgo,
 } from "@/components/ui";
 import {
@@ -63,7 +64,7 @@ export default function QuestionListPage() {
               aria-selected={filter === f.id}
               onClick={() => setFilter(f.id)}
               className={`rounded-full px-3 py-1.5 text-sm ${
-                filter === f.id ? "bg-stone-900 text-white" : "bg-white text-stone-700 ring-1 ring-stone-200 hover:bg-stone-50"
+                filter === f.id ? "bg-teal-700 text-white" : "bg-white text-stone-700 ring-1 ring-stone-200 hover:bg-stone-50"
               }`}
             >
               {f.label}
@@ -106,7 +107,9 @@ export default function QuestionListPage() {
           {shown.map((q) => (
             <li key={q.id}>
               <Link href={`/kelas/${cid}/pertanyaan/${q.id}`}>
-                <Card className="space-y-2 hover:border-teal-600">
+                <Card
+                  className={`space-y-2 border-l-4 transition hover:shadow-md hover:ring-teal-600/40 ${statusStripe[q.status]}`}
+                >
                   <div className="flex flex-wrap items-center gap-1.5">
                     <StatusBadge status={q.status} />
                     <Badge>{q.topic}</Badge>

@@ -17,6 +17,14 @@ service cloud.firestore {
       return /databases/$(database)/documents/courses/$(cid);
     }
 
+    function questionPath(cid, qid) {
+      return /databases/$(database)/documents/courses/$(cid)/questions/$(qid);
+    }
+
+    function answerPath(cid, qid, aid) {
+      return /databases/$(database)/documents/courses/$(cid)/questions/$(qid)/answers/$(aid);
+    }
+
     function memberPath(cid) {
       return /databases/$(database)/documents/courses/$(cid)/members/$(request.auth.uid);
     }
@@ -153,6 +161,35 @@ service cloud.firestore {
               && request.resource.data.verifiedAnswerId is string
               && getAfter(/databases/$(database)/documents/courses/$(cid)/questions/$(qid)/answers/$(request.resource.data.verifiedAnswerId)).data.verified == true
               && request.resource.data.answerCount in [resource.data.answerCount, resource.data.answerCount + 1])
+            ||
+            // The verification is taken back while the answer stays: the
+            // lecturer undoes it, or the answer's author edits the answer.
+            (changed().hasOnly(['status', 'verifiedAnswerId', 'lastActivityAt'])
+              && resource.data.verifiedAnswerId != null
+              && request.resource.data.verifiedAnswerId == null
+              && request.resource.data.status == 'answered'
+              && getAfter(answerPath(cid, qid, resource.data.verifiedAnswerId)).data.verified == false
+              && (isLecturer(cid)
+                  || get(answerPath(cid, qid, resource.data.verifiedAnswerId)).data.authorUid == request.auth.uid))
+            ||
+            // An answer is deleted (by its author or the lecturer): the counter
+            // drops by one, and deleting the verified answer also clears the verification.
+            (changed().hasOnly(['answerCount', 'status', 'verifiedAnswerId', 'lastActivityAt'])
+              && request.resource.data.answerCount == resource.data.answerCount - 1
+              && request.resource.data.answerCount >= 0
+              && (
+                (request.resource.data.verifiedAnswerId == resource.data.verifiedAnswerId
+                  && (request.resource.data.status == resource.data.status
+                      || (resource.data.status == 'answered'
+                          && request.resource.data.status == 'open'
+                          && request.resource.data.answerCount == 0)))
+                ||
+                (resource.data.verifiedAnswerId != null
+                  && request.resource.data.verifiedAnswerId == null
+                  && !existsAfter(answerPath(cid, qid, resource.data.verifiedAnswerId))
+                  && ((request.resource.data.answerCount > 0 && request.resource.data.status == 'answered')
+                      || (request.resource.data.answerCount == 0 && request.resource.data.status == 'open')))
+              ))
           );
         allow delete: if false;
 
@@ -180,10 +217,36 @@ service cloud.firestore {
                 && request.resource.data.verifiedAt == request.time
                 && getAfter(/databases/$(database)/documents/courses/$(cid)/questions/$(qid)).data.verifiedAnswerId == aid)
             );
-          allow update: if isLecturer(cid)
-            && changed().hasOnly(['verified', 'verifiedAt'])
-            && request.resource.data.verified is bool;
-          allow delete: if false;
+          allow update: if isMember(cid) && (
+            // The lecturer verifies an answer or takes the verification back.
+            (isLecturer(cid)
+              && changed().hasOnly(['verified', 'verifiedAt'])
+              && request.resource.data.verified is bool)
+            ||
+            // The author edits their own answer. A non-lecturer's edit drops
+            // the verification (clearing it on the question in the same
+            // batch), so a checked answer cannot change silently.
+            (resource.data.authorUid == request.auth.uid
+              && changed().hasOnly(['body', 'verified', 'verifiedAt'])
+              && textOk(request.resource.data.body, 1, 3000)
+              && (
+                (isLecturer(cid) && !changed().hasAny(['verified', 'verifiedAt']))
+                ||
+                (!isLecturer(cid)
+                  && request.resource.data.verified == false
+                  && request.resource.data.verifiedAt == null
+                  && (resource.data.verified == false
+                      || getAfter(questionPath(cid, qid)).data.verifiedAnswerId == null))
+              ))
+          );
+          // Authors delete their own answers and the lecturer can delete any
+          // answer, lowering the counter in the same batch and clearing the
+          // verification if this was the verified one.
+          allow delete: if isMember(cid)
+            && (resource.data.authorUid == request.auth.uid || isLecturer(cid))
+            && getAfter(questionPath(cid, qid)).data.answerCount
+               == get(questionPath(cid, qid)).data.answerCount - 1
+            && getAfter(questionPath(cid, qid)).data.verifiedAnswerId != aid;
         }
       }
 

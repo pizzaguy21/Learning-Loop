@@ -294,6 +294,54 @@ export function verifyAnswer(cid: string, question: Question, answerId: string) 
   return batch.commit();
 }
 
+/** The lecturer takes back the verification; the answer itself stays. */
+export function unverifyAnswer(cid: string, question: Question) {
+  const batch = writeBatch(db);
+  unverify(batch, cid, question);
+  batch.update(questionRef(cid, question.id), {
+    status: "answered",
+    verifiedAnswerId: null,
+    lastActivityAt: serverTimestamp(),
+  });
+  return batch.commit();
+}
+
+/**
+ * The author edits their own answer. When a student or mentor edits the
+ * verified answer, the verification is dropped, since the lecturer checked the old text.
+ */
+export function editAnswer(cid: string, question: Question, answer: Answer, me: Member, body: string) {
+  const ref = doc(db, "courses", cid, "questions", question.id, "answers", answer.id);
+  const batch = writeBatch(db);
+  if (answer.verified && me.role !== "lecturer") {
+    batch.update(ref, { body, verified: false, verifiedAt: null });
+    batch.update(questionRef(cid, question.id), {
+      status: "answered",
+      verifiedAnswerId: null,
+      lastActivityAt: serverTimestamp(),
+    });
+  } else {
+    batch.update(ref, { body });
+  }
+  return batch.commit();
+}
+
+/** The author or the lecturer deletes an answer; deleting the verified one clears the verification. */
+export function deleteAnswer(cid: string, question: Question, answerId: string) {
+  const wasVerified = question.verifiedAnswerId === answerId;
+  const remaining = question.answerCount - 1;
+  const batch = writeBatch(db);
+  batch.delete(doc(db, "courses", cid, "questions", question.id, "answers", answerId));
+  batch.update(questionRef(cid, question.id), {
+    answerCount: increment(-1),
+    ...(wasVerified ? { verifiedAnswerId: null } : {}),
+    status:
+      wasVerified || question.status === "answered" ? (remaining > 0 ? "answered" : "open") : question.status,
+    lastActivityAt: serverTimestamp(),
+  });
+  return batch.commit();
+}
+
 function unverify(batch: ReturnType<typeof writeBatch>, cid: string, question: Question) {
   batch.update(
     doc(db, "courses", cid, "questions", question.id, "answers", question.verifiedAnswerId!),
