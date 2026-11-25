@@ -25,7 +25,7 @@ Live: https://learning-loop2.vercel.app
 | Lecturer promotes students to peer mentor | Done |
 | Filter questions by status and topic; "my questions" | Done |
 | Deployment (Vercel + Firebase project) | Done |
-| Weekly topic summary for the lecturer | **Not started** (planned by 8 Dec) |
+| Weekly topic summary for the lecturer (last 7 days by topic: unanswered, unverified, verified) | Done |
 | Similar-question matching (TF-IDF) | **Not started** (Final Day task) |
 | Lecturer moderation (remove off-topic questions) | **Not started** (Final Day task) |
 | Notifications | **Not started** (lower priority) |
@@ -80,7 +80,8 @@ Emulator data is wiped when the emulators stop; run `npm run seed` again.
 ## Tests
 
 ```bash
-npm run test:rules   # 28 security-rule tests (starts its own Firestore emulator)
+npm run test:rules   # 28 security-rule tests + 3 summary unit tests (starts its own Firestore emulator)
+npm run test:unit    # only the weekly-summary unit tests, no emulator needed
 npm run smoke        # end-to-end run of src/lib/data.ts; needs `npm run emulators` running
 ```
 

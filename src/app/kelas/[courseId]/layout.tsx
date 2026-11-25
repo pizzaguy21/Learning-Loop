@@ -49,7 +49,12 @@ function CourseShell({ children }: { children: React.ReactNode }) {
   const isLecturer = value.me.role === "lecturer";
   const tabs = [
     { href: `/kelas/${cid}`, label: "Pertanyaan" },
-    ...(isLecturer ? [{ href: `/kelas/${cid}/anggota`, label: "Anggota" }] : []),
+    ...(isLecturer
+      ? [
+          { href: `/kelas/${cid}/ringkasan`, label: "Ringkasan" },
+          { href: `/kelas/${cid}/anggota`, label: "Anggota" },
+        ]
+      : []),
   ];
 
   return (
@@ -72,7 +77,9 @@ function CourseShell({ children }: { children: React.ReactNode }) {
         <nav className="flex gap-1 border-b border-stone-200">
           {tabs.map((t) => {
             const active =
-              t.href === `/kelas/${cid}` ? !pathname.endsWith("/anggota") : pathname.startsWith(t.href);
+              t.href === `/kelas/${cid}`
+                ? !pathname.endsWith("/anggota") && !pathname.endsWith("/ringkasan")
+                : pathname.startsWith(t.href);
             return (
               <Link
                 key={t.href}

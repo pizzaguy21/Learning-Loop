@@ -10,7 +10,8 @@
     "start": "next start",
     "lint": "eslint",
     "test:rules": "firebase emulators:exec --only firestore --project demo-learning-loop \"vitest run\"",
-    "smoke": "tsx scripts/smoke.ts"
+    "smoke": "tsx scripts/smoke.ts",
+    "test:unit": "vitest run tests/summary.test.ts"
   },
   "dependencies": {
     "firebase": "^13.4.0",
