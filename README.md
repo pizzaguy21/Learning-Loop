@@ -116,5 +116,5 @@ tests, and is responsible for the code.
 | Member | Role | Contributions so far |
 |---|---|---|
 | Vincent Joe Wangsadidjaja (Team Leader) | Research, validation, and communication | Designed and distributed the surveys with Steven; co-wrote the abstract and made the survey charts with the team |
-| Steven Wijaya | Technical lead: backend, security, deployment | Designed and distributed the surveys with Vincent; co-wrote the abstract and charts; directed the app's development with Claude Code; deployed it to Vercel and Firebase; reviewed code with Jonathan |
+| Steven Wijaya | Technical lead: backend, security, deployment | Designed and distributed the surveys with Vincent; co-wrote the abstract and charts; directed the app's development; deployed it to Vercel and Firebase; reviewed code with Jonathan |
 | Jonathan Hartanto | Product and frontend; matching and metrics | Co-wrote the abstract and charts; tested the app's flows; reviewed code with Steven |
