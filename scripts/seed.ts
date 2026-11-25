@@ -1,22 +1,51 @@
 /**
- * Fills the local Firebase Emulator with a SYNTHETIC demo course.
+ * Fills Firebase with a SYNTHETIC demo course.
  * Every seeded document has `demo: true`, and the app labels it "Data demo".
  * None of it comes from real students or real survey responses.
  *
+ * Local emulator (default):
  *   npm run seed                         # demo course with fictional people
  *   npm run seed -- --lecturer you@x.com # also make your emulator account its lecturer
  *                                        # (and an approved lecturer who can create courses)
  *
+ * Live project (needs a service-account key that is kept OUTSIDE this repo):
+ *   npm run seed -- --prod --key <path-to-key.json> --lecturer you@x.com [--reset]
+ *   - The key's project must be the "prod" alias in .firebaserc.
+ *   - --lecturer is required: a real account that has signed in to the live app once,
+ *     so someone can verify answers in the demo course.
+ *   - Creates no Auth accounts (the fictional people exist only as names in the data)
+ *     and does not touch the approved-lecturer list.
+ *   - Refuses to overwrite an existing demo course unless --reset is given; --reset
+ *     deletes everything in that course, including posts made by test participants.
+ *
  * Sign in once in the app first so the account in --lecturer exists.
- * This script refuses to run against a real Firebase project.
  */
-import { initializeApp } from "firebase-admin/app";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { cert, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 
-process.env.FIRESTORE_EMULATOR_HOST ??= "127.0.0.1:8080";
-process.env.FIREBASE_AUTH_EMULATOR_HOST ??= "127.0.0.1:9099";
-const projectId = "demo-learning-loop";
+const arg = (name: string) =>
+  process.argv.includes(name) ? process.argv[process.argv.indexOf(name) + 1] : undefined;
+const prod = process.argv.includes("--prod");
+const reset = process.argv.includes("--reset");
+const keyPath = arg("--key");
+
+let projectId = "demo-learning-loop";
+if (prod) {
+  if (!keyPath) throw new Error("--prod needs --key <path-to-service-account.json>.");
+  const key = JSON.parse(readFileSync(keyPath, "utf8")) as { project_id?: string };
+  const rc = JSON.parse(readFileSync(join(process.cwd(), ".firebaserc"), "utf8"));
+  if (!key.project_id || key.project_id !== rc.projects?.prod)
+    throw new Error(`Key is for "${key.project_id}", not the prod project "${rc.projects?.prod}".`);
+  projectId = key.project_id;
+  delete process.env.FIRESTORE_EMULATOR_HOST;
+  delete process.env.FIREBASE_AUTH_EMULATOR_HOST;
+} else {
+  process.env.FIRESTORE_EMULATOR_HOST ??= "127.0.0.1:8080";
+  process.env.FIREBASE_AUTH_EMULATOR_HOST ??= "127.0.0.1:9099";
+}
 
 const CID = "demo-struktur-data";
 const CODE = "DEMO26";
@@ -104,29 +133,37 @@ const questions: SeedQuestion[] = [
 const ago = (hours: number) => Timestamp.fromMillis(Date.now() - hours * 3_600_000);
 
 async function main() {
-  const lecturerEmail = process.argv.includes("--lecturer")
-    ? process.argv[process.argv.indexOf("--lecturer") + 1]
-    : undefined;
+  const lecturerEmail = arg("--lecturer");
+  if (prod && !lecturerEmail) throw new Error("--prod needs --lecturer <email of a real account>.");
 
-  initializeApp({ projectId });
+  initializeApp(prod ? { projectId, credential: cert(keyPath!) } : { projectId });
   const auth = getAuth();
   const db = getFirestore();
 
-  for (const p of Object.values(people)) {
-    await auth.deleteUser(p.uid).catch(() => {});
-    await auth.createUser({ uid: p.uid, displayName: p.name, email: p.email });
+  if (!prod) {
+    for (const p of Object.values(people)) {
+      await auth.deleteUser(p.uid).catch(() => {});
+      await auth.createUser({ uid: p.uid, displayName: p.name, email: p.email });
+    }
   }
 
   let lecturer: { uid: string; name: string; email: string } = people.dosen;
   if (lecturerEmail) {
     const user = await auth.getUserByEmail(lecturerEmail).catch(() => null);
-    if (!user) throw new Error(`No emulator account for ${lecturerEmail}. Sign in once in the app first.`);
+    if (!user) throw new Error(`No account for ${lecturerEmail}. Sign in once in the app first.`);
     lecturer = { uid: user.uid, name: user.displayName ?? user.email!, email: user.email! };
   }
 
+  const existing = await db.doc(`courses/${CID}`).get();
+  const code = await db.doc(`joinCodes/${CODE}`).get();
+  if (code.exists && code.get("courseId") !== CID)
+    throw new Error(`Join code ${CODE} already belongs to another course.`);
+  if (prod && existing.exists && !reset)
+    throw new Error("The demo course already exists. Add --reset to delete and recreate it.");
+
   await db.recursiveDelete(db.doc(`courses/${CID}`));
   const batch = db.batch();
-  batch.set(db.doc(`lecturers/${lecturer.email.toLowerCase()}`), { name: lecturer.name, demo: true });
+  if (!prod) batch.set(db.doc(`lecturers/${lecturer.email.toLowerCase()}`), { name: lecturer.name, demo: true });
   batch.set(db.doc(`courses/${CID}`), {
     name: COURSE_NAME,
     code: CODE,
@@ -192,7 +229,7 @@ async function main() {
   });
   await batch.commit();
 
-  console.log(`Seeded synthetic course "${COURSE_NAME}" (join code ${CODE}).`);
+  console.log(`Seeded synthetic course "${COURSE_NAME}" (join code ${CODE}) in ${projectId}.`);
   console.log(`Lecturer: ${lecturer.name} <${lecturer.email}>`);
 }
 

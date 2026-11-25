@@ -44,3 +44,7 @@ next-env.d.ts
 # firebase emulators
 .emulator-data/
 *-debug.log
+
+# Firebase service-account keys must never be committed
+*firebase-adminsdk*.json
+*service-account*.json
