@@ -6,7 +6,9 @@ mentors answer, and the lecturer verifies the correct answer or writes an
 official one. Built by team Trio Pejabat for STACK 2026 (GDGoC ITB), Case 1:
 Smarter Campus and Learning. The user interface is in Indonesian.
 
-## Status (25 November 2026)
+Live: https://learning-loop2.vercel.app
+
+## Status (26 November 2026)
 
 | Feature | Status |
 |---|---|
@@ -22,13 +24,16 @@ Smarter Campus and Learning. The user interface is in Indonesian.
 | Lecturer deletes any answer in the course | Done |
 | Lecturer promotes students to peer mentor | Done |
 | Filter questions by status and topic; "my questions" | Done |
-| Weekly topic summary for the lecturer | **Not started** (planned 7-16 Dec) |
-| Similar-question matching (TF-IDF) | **Not started** (planned for Final Day) |
-| Notifications | **Not started** |
-| Deployment (Vercel + Firebase project) | **Not started** |
+| Deployment (Vercel + Firebase project) | Done |
+| Weekly topic summary for the lecturer | **Not started** (planned by 8 Dec) |
+| Similar-question matching (TF-IDF) | **Not started** (Final Day task) |
+| Lecturer moderation (remove off-topic questions) | **Not started** (Final Day task) |
+| Notifications | **Not started** (lower priority) |
+| Test sessions with real students and a lecturer | **Not started** (planned 5-12 Dec) |
 
-All data in the demo course is **synthetic** and shown with a "Data demo"
-label. It does not come from real students or from the team's survey.
+The demo course (`npm run seed`, local emulator only) is **synthetic** and
+shown with a "Data demo" label. It does not come from real students or from
+the team's survey.
 
 ## How anonymity is enforced
 
@@ -95,7 +100,9 @@ npm run smoke        # end-to-end run of src/lib/data.ts; needs `npm run emulato
 
 Next.js, React, Tailwind CSS, the Firebase JavaScript SDK, Firebase Admin SDK,
 Firebase CLI and Emulator Suite, Vitest, tsx, and the Geist font (Google
-Fonts). Project scaffolded with `create-next-app`.
+Fonts). Project scaffolded with `create-next-app`. Services: Vercel (hosting),
+Firebase Authentication and Cloud Firestore, and Google Forms and Google Sheets
+(team surveys and charts).
 
 ## AI assistance disclosure
 
@@ -106,8 +113,8 @@ tests, and is responsible for the code.
 
 ## Team
 
-| Member | Role and contributions |
-|---|---|
-| Vincent Joe Wangsadidjaja | _to be filled in_ |
-| Steven Wijaya | _to be filled in_ |
-| Jonathan Hartanto | _to be filled in_ |
+| Member | Role | Contributions so far |
+|---|---|---|
+| Vincent Joe Wangsadidjaja (Team Leader) | Research, validation, and communication | Designed and distributed the surveys with Steven; co-wrote the abstract and made the survey charts with the team |
+| Steven Wijaya | Technical lead: backend, security, deployment | Designed and distributed the surveys with Vincent; co-wrote the abstract and charts; directed the app's development with Claude Code; deployed it to Vercel and Firebase; reviewed code with Jonathan |
+| Jonathan Hartanto | Product and frontend; matching and metrics | Co-wrote the abstract and charts; tested the app's flows; reviewed code with Steven |
