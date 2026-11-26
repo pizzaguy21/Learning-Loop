@@ -45,3 +45,20 @@ export function summarizeByTopic(questions: Question[], since: number, now = Dat
       a.topic.localeCompare(b.topic, "id"),
   );
 }
+
+/**
+ * One plain sentence that states what the summary means, so the lecturer does not have to read the
+ * topic list to find where the class is stuck. Returns null when the period has no questions.
+ */
+export function summaryHeadline(topics: TopicSummary[]): string | null {
+  const total = topics.reduce((n, t) => n + t.total, 0);
+  if (total === 0) return null;
+  const unresolved = topics.reduce((n, t) => n + t.unanswered + t.unverified, 0);
+  if (unresolved === 0) return `${total} pertanyaan masuk dan semuanya sudah diverifikasi.`;
+  // Topics are already sorted by unresolved count, so the first ones need attention most.
+  const focus = topics
+    .filter((t) => t.unanswered + t.unverified > 0)
+    .slice(0, 2)
+    .map((t) => `${t.topic} (${t.unanswered + t.unverified})`);
+  return `${total} pertanyaan masuk, ${unresolved} belum selesai. Paling perlu perhatian: ${focus.join(" dan ")}.`;
+}

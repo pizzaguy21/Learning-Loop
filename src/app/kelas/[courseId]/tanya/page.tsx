@@ -57,7 +57,7 @@ export default function AskPage() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             minLength={5}
-            maxLength={150}
+            maxLength={300}
             placeholder="contoh: Kenapa rekursi butuh base case?"
             className={inputClass}
             required

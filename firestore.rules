@@ -136,7 +136,7 @@ service cloud.firestore {
         allow create: if isMember(cid)
           && exactKeys(['title', 'body', 'topic', 'status', 'answerCount',
                         'verifiedAnswerId', 'createdAt', 'lastActivityAt'])
-          && textOk(request.resource.data.title, 5, 150)
+          && textOk(request.resource.data.title, 5, 300)
           && textOk(request.resource.data.body, 0, 3000)
           && textOk(request.resource.data.topic, 1, 60)
           && request.resource.data.status == 'open'

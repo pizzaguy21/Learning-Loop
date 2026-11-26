@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Question, QuestionStatus } from "../src/lib/data";
-import { summarizeByTopic, WEEK_MS } from "../src/lib/summary";
+import { summarizeByTopic, summaryHeadline, WEEK_MS } from "../src/lib/summary";
 
 const NOW = Date.UTC(2026, 11, 10);
 const HOUR = 3_600_000;
@@ -49,5 +49,31 @@ describe("weekly topic summary", () => {
   it("counts a question whose server timestamp has not arrived yet as just asked", () => {
     const [t] = summarizeByTopic([q("pending", "Lainnya", "open", null)], NOW - WEEK_MS, NOW);
     expect(t).toMatchObject({ topic: "Lainnya", total: 1, unanswered: 1 });
+  });
+});
+
+describe("summary headline", () => {
+  it("names the topics with the most unresolved questions", () => {
+    const topics = summarizeByTopic(
+      [
+        q("a", "Pohon", "open", 1),
+        q("b", "Pohon", "answered", 2),
+        q("c", "Graf", "open", 3),
+        q("d", "Rekursi", "answered", 4),
+        q("e", "Sorting", "verified", 5),
+      ],
+      NOW - WEEK_MS,
+      NOW,
+    );
+    expect(summaryHeadline(topics)).toBe(
+      "5 pertanyaan masuk, 4 belum selesai. Paling perlu perhatian: Pohon (2) dan Graf (1).",
+    );
+  });
+
+  it("says when everything is verified, and returns null for an empty period", () => {
+    expect(summaryHeadline(summarizeByTopic([q("a", "Graf", "verified", 1)], NOW - WEEK_MS, NOW))).toBe(
+      "1 pertanyaan masuk dan semuanya sudah diverifikasi.",
+    );
+    expect(summaryHeadline([])).toBeNull();
   });
 });

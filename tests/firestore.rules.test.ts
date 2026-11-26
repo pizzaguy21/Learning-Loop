@@ -267,6 +267,11 @@ describe("anonymous questions", () => {
     await assertFails(ask(dbFor(people.ani), people.ani, "q1", { authorUid: "ani" }));
   });
 
+  it("accepts a title of up to 300 characters and rejects a longer one", async () => {
+    await assertSucceeds(ask(dbFor(people.ani), people.ani, "q1", { title: "a".repeat(300) }));
+    await assertFails(ask(dbFor(people.ani), people.ani, "q2", { title: "a".repeat(301) }));
+  });
+
   it("rejects a question without an author record", async () => {
     await assertFails(
       setDoc(doc(dbFor(people.ani), "courses", CID, "questions", "q1"), {

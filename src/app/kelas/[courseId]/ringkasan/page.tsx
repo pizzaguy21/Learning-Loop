@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { Badge, Card, ErrorBox, friendlyError, Spinner, StatusBadge, timeAgo } from "@/components/ui";
 import { questionsQuery, type Question } from "@/lib/data";
 import { useCollection } from "@/lib/hooks";
-import { summarizeByTopic, WEEK_MS } from "@/lib/summary";
+import { summarizeByTopic, summaryHeadline, WEEK_MS } from "@/lib/summary";
 import { useCourse } from "../course-context";
 
 type Period = "week" | "all";
@@ -34,6 +34,7 @@ export default function WeeklySummaryPage() {
 
   const sum = (key: "total" | "unanswered" | "unverified" | "verified") =>
     topics.reduce((n, t) => n + t[key], 0);
+  const headline = summaryHeadline(topics);
   const quiet = course.topics.filter((t) => !topics.some((s) => s.topic === t));
   const periods: { id: Period; label: string }[] = [
     { id: "week", label: "7 hari terakhir" },
@@ -63,7 +64,13 @@ export default function WeeklySummaryPage() {
         </div>
       </div>
 
-      <Card>
+      <Card className="space-y-4">
+        <div>
+          <h2 className="font-semibold text-stone-900">
+            {period === "week" ? "Ringkasan 7 hari terakhir" : "Ringkasan semua waktu"}
+          </h2>
+          {headline && <p className="mt-1 text-stone-800">{headline}</p>}
+        </div>
         <dl className="grid grid-cols-2 gap-4 text-center sm:grid-cols-4">
           {[
             ["Pertanyaan", sum("total")],
